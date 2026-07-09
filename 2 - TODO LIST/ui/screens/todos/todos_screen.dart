@@ -29,30 +29,55 @@ class _TodosScreenState extends State<TodosScreen> {
   void _fetchTodos() async {
     TodoRepository repository = TodoRepository.global;
 
-    //  TODO
-    // Fetch the list of todos from the repo
-    // Handle the success, loading and error cases (catch exception)
-    // Update the widget state (asyncData)
+    setState(() => asyncData = AsyncData.loading());
 
-    // List<Todo> todos = await repository.getTodos();
-    // setState(() => asyncData = AsyncData.success(todos),);
+    try {
+      List<Todo> todos = await repository.getTodos();
+      setState(() => asyncData = AsyncData.success(todos));
+    } on RepositoryException catch (e) {
+      setState(() => asyncData = AsyncData.error(e.message));
+    }
   }
 
   void onUpdateCompleted(Todo todo) async {
     TodoRepository repository = TodoRepository.global;
 
-    //  TODO
-    // Update the todo from the repo
-    // Handle the success, loading and error cases (catch exception)
-    // Update the widget state (asyncData)
+    // We don't reload the full list: we update the modified Todo directly
+    // in the cache (asyncData) so the UI feels instant.
+    final currentTodos = asyncData.value;
+    if (currentTodos == null) return;
 
-    // ! we dont reload the full list, we update directly the modified Todo in the cache (asyncData)
+    final newCompleted = !todo.completed;
+    final updatedTodo = todo.copyWith(newCompleted);
+
+    // Optimistic update.
+    final optimisticTodos = [
+      for (final t in currentTodos) t.id == todo.id ? updatedTodo : t,
+    ];
+    setState(() => asyncData = AsyncData.success(optimisticTodos));
+
+    try {
+      await repository.updateCompleted(todo.id, newCompleted);
+    } on RepositoryException catch (e) {
+      // Roll back the optimistic change and surface the error.
+      setState(() => asyncData = AsyncData.success(currentTodos));
+      _showErrorSnackBar(e.message);
+    }
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Widget get content => switch (asyncData.status) {
-    AsyncStatus.notstarted => Text(
-      "Tap to refresh",
-      style: AppTheme.paragraph.copyWith(color: AppTheme.redColor),
+    AsyncStatus.notstarted => GestureDetector(
+      onTap: _fetchTodos,
+      child: Text(
+        "Tap to refresh",
+        style: AppTheme.paragraph.copyWith(color: AppTheme.redColor),
+      ),
     ),
 
     AsyncStatus.loading => CircularProgressIndicator(),

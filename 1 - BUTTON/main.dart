@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../1 - BUTTON/ui/screen/button_screen.dart';
+import 'ui/screen/button_screen.dart';
 
 
 void main() {
