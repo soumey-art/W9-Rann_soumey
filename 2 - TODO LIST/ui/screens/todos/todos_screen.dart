@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../data/repository/repository_exception.dart';
-
 import '../../../data/repository/todo_repository.dart';
 import '../../../models/todo.dart';
 import '../../theme/app_screen.dart';
@@ -29,96 +28,54 @@ class _TodosScreenState extends State<TodosScreen> {
   void _fetchTodos() async {
     TodoRepository repository = TodoRepository.global;
 
-    setState(() => asyncData = AsyncData.loading());
+    // Fetch the list of todos from the repo
+    // Handle the success, loading and error cases
+    // Update the widget state (asyncData)
+
+    setState(() {
+      asyncData = AsyncData.loading();
+    });
 
     try {
       List<Todo> todos = await repository.getTodos();
-      setState(() => asyncData = AsyncData.success(todos));
+
+      setState(() {
+        asyncData = AsyncData.success(todos);
+      });
     } on RepositoryException catch (e) {
-      setState(() => asyncData = AsyncData.error(e.message));
+      setState(() {
+        asyncData = AsyncData.error(e.message);
+      });
     }
   }
 
-
-void _onAddTodo(String title) async {
-    TodoRepository repository = TodoRepository.global;
-    final currentTodos = asyncData.value ?? [];
-
-    try {
-      final newTodo = await repository.addTodo(title);
-      setState(() => asyncData = AsyncData.success([...currentTodos, newTodo]));
-    } on RepositoryException catch (e) {
-      _showErrorSnackBar(e.message);
-    }
-  }
-
-  void _showAddTodoDialog() {
-    final controller = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('New to-do'),
-        content: TextField(controller: controller, autofocus: true),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              final title = controller.text.trim();
-              if (title.isNotEmpty) _onAddTodo(title);
-              Navigator.pop(context);
-            },
-            child: const Text('Add'),
-          ),
-        ],
-      ),
-    );
-  }
   void onUpdateCompleted(Todo todo) async {
     TodoRepository repository = TodoRepository.global;
 
+    // Update the todo from the repo
+    // Reload the list after updating
+    // Update the widget state (asyncData)
 
-    // We don't reload the full list: we update the modified Todo directly
-    // in the cache (asyncData) so the UI feels instant.
-    final currentTodos = asyncData.value;
-    if (currentTodos == null) return;
-
-    final newCompleted = !todo.completed;
-    final updatedTodo = todo.copyWith(newCompleted);
-
-    // Optimistic update.
-    final optimisticTodos = [
-      for (final t in currentTodos) t.id == todo.id ? updatedTodo : t,
-    ];
-    setState(() => asyncData = AsyncData.success(optimisticTodos));
+    // ! we dont reload the full list, we update directly the modified Todo in the cache (asyncData)
 
     try {
-      await repository.updateCompleted(todo.id, newCompleted);
+      await repository.updateCompleted(todo.id, !todo.completed);
+
+      _fetchTodos();
     } on RepositoryException catch (e) {
-      // Roll back the optimistic change and surface the error.
-      setState(() => asyncData = AsyncData.success(currentTodos));
-      _showErrorSnackBar(e.message);
+      setState(() {
+        asyncData = AsyncData.error(e.message);
+      });
     }
   }
 
-  void _showErrorSnackBar(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
-  }
-
   Widget get content => switch (asyncData.status) {
-    AsyncStatus.notstarted => GestureDetector(
-      onTap: _fetchTodos,
-      child: Text(
-        "Tap to refresh",
-        style: AppTheme.paragraph.copyWith(color: AppTheme.redColor),
-      ),
+    AsyncStatus.notstarted => Text(
+      "Tap to refresh",
+      style: AppTheme.paragraph.copyWith(color: AppTheme.redColor),
     ),
 
-    AsyncStatus.loading => CircularProgressIndicator(),
+    AsyncStatus.loading => const CircularProgressIndicator(),
 
     AsyncStatus.success => _buildTodos(),
 
@@ -140,7 +97,6 @@ void _onAddTodo(String title) async {
       children: [
         Icon(Icons.warning, color: AppTheme.redColor),
         SizedBox(width: 10),
-
         Text(
           asyncData.error!,
           style: AppTheme.paragraph.copyWith(color: AppTheme.redColor),
@@ -160,11 +116,6 @@ void _onAddTodo(String title) async {
       body: Padding(
         padding: const EdgeInsets.all(8.0),
         child: Center(child: content),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddTodoDialog,
-        backgroundColor: AppTheme.yellowColor,
-        child: const Icon(Icons.add),
       ),
     );
   }

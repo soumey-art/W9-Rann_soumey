@@ -1,6 +1,4 @@
-/// Generic wrapper representing the 3 (4) states of an asynchronous
-/// fetch operation: idle, loading, success (with data) and error.
-///
+
 /// Used across the app so every screen handles async calls the same way.
 class AsyncData<T> {
   final T? data;
