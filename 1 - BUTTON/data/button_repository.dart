@@ -55,13 +55,14 @@ class ButtonStatusRepository {
 
   /// Updates only the `selected` field in Firebase using PATCH, so the
   /// rest of the node (title) is left untouched.
-  Future<void> updateSelected(bool selected) async {
+Future<void> updateSelected(bool selected) async {
     final uri = Uri.parse('$_baseUrl/$_node.json');
 
     late final http.Response response;
     try {
       response = await http.patch(
         uri,
+        headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'selected': selected}),
       );
     } catch (_) {

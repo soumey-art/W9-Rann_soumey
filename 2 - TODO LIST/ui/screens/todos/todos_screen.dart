@@ -39,8 +39,46 @@ class _TodosScreenState extends State<TodosScreen> {
     }
   }
 
+
+void _onAddTodo(String title) async {
+    TodoRepository repository = TodoRepository.global;
+    final currentTodos = asyncData.value ?? [];
+
+    try {
+      final newTodo = await repository.addTodo(title);
+      setState(() => asyncData = AsyncData.success([...currentTodos, newTodo]));
+    } on RepositoryException catch (e) {
+      _showErrorSnackBar(e.message);
+    }
+  }
+
+  void _showAddTodoDialog() {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('New to-do'),
+        content: TextField(controller: controller, autofocus: true),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              final title = controller.text.trim();
+              if (title.isNotEmpty) _onAddTodo(title);
+              Navigator.pop(context);
+            },
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+  }
   void onUpdateCompleted(Todo todo) async {
     TodoRepository repository = TodoRepository.global;
+
 
     // We don't reload the full list: we update the modified Todo directly
     // in the cache (asyncData) so the UI feels instant.
@@ -122,6 +160,11 @@ class _TodosScreenState extends State<TodosScreen> {
       body: Padding(
         padding: const EdgeInsets.all(8.0),
         child: Center(child: content),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showAddTodoDialog,
+        backgroundColor: AppTheme.yellowColor,
+        child: const Icon(Icons.add),
       ),
     );
   }

@@ -7,12 +7,11 @@ import '../dto/todo_dto.dart';
 import 'repository_exception.dart';
 
 class TodoRepository {
-  static final global = TodoRepository();   // unique instance
-  
+  static final global = TodoRepository(); // unique instance
 
   //
   static const String _baseUrl =
-    'https://w9-ex2-default-rtdb.asia-southeast1.firebasedatabase.app/todos';
+      'https://w9-ex2-default-rtdb.asia-southeast1.firebasedatabase.app/todos';
   static const String _node = 'todos';
 
   Future<List<Todo>> getTodos() async {
@@ -22,13 +21,13 @@ class TodoRepository {
     try {
       response = await http.get(uri);
     } catch (_) {
-       // Ensure the message is displayed on the UI if error occured
+      // Ensure the message is displayed on the UI if error occured
       //throw RepositoryException("No wifi !"); at all.
       throw RepositoryException(
         'No internet connection. Please check your network and try again.',
       );
     }
-      if (response.statusCode != 200) {
+    if (response.statusCode != 200) {
       throw RepositoryException(
         'Firebase returned an error (status code ${response.statusCode})',
       );
@@ -58,7 +57,7 @@ class TodoRepository {
     }
   }
 
-    Future<void> updateCompleted(String todoId, bool completed) async {
+  Future<void> updateCompleted(String todoId, bool completed) async {
     final uri = Uri.parse('$_baseUrl/$_node/$todoId.json');
 
     late final http.Response response;
@@ -78,5 +77,29 @@ class TodoRepository {
         'Failed to update the todo (status code ${response.statusCode})',
       );
     }
+  }
+
+  Future<Todo> addTodo(String title) async {
+    final uri = Uri.parse('$_baseUrl/$_node.json');
+    final draft = Todo(id: '', title: title, completed: false);
+
+    late final http.Response response;
+    try{
+      response = await http.post(uri, body: jsonEncode(TodoDto.toJson(draft)));
+    } catch (_) {
+      throw RepositoryException(
+        'No internet connection. Please check your network and try again.',
+      );
+    }
+     if (response.statusCode != 200) {
+      throw RepositoryException(
+        'Failed to add the todo (status code ${response.statusCode})',
+      );
+    }
+
+    final json = jsonDecode(response.body) as Map<String, dynamic>;
+    final newId =
+        json['name'] as String; 
+    return Todo(id: newId, title: title, completed: false);
   }
 }
